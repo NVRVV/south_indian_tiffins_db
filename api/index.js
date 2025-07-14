@@ -18,7 +18,7 @@ app.get('/tiffins', async (req, res) => {
     try {
         await client.connect();
         const db = client.db('tiffins');
-        const tiffins = db.collection('tiffins_name');
+        const tiffins = db.collection('tiffin_name');
         const alltiffins = await tiffins.find({}).toArray();
         res.json(alltiffins);
     } catch (error) {
