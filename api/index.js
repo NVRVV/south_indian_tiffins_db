@@ -9,21 +9,36 @@ require('dotenv').config({ path: './.env' });
 app.use(cors());
 app.use(express.json());
 
-console.log('MONGODB_URI:', process.env.MONGODB_URI);
-const envPath = 'E:\\mystuff\\mongo_DB\\southIndianTiffins\\south_indian_tiffins_db\\.env';
-try {
-    const envContent = fs.readFileSync(envPath, 'utf8');
-    console.log('Raw .env content:', envContent);
-} catch (err) {
-    console.error('Error reading .env file:', err);
-}
-
 const uri = process.env.MONGODB_URI;
 
 if (!uri) {
     console.error('MONGODB_URI is not defined. Check your .env file.');
     process.exit(1);
 }
+
+app.get('/tiffins/:name', async (req, res) => {
+    const client = new MongoClient(uri);
+    try {
+        await client.connect();
+        console.log('Connected to MongoDB');
+        const db = client.db('tiffins');
+        const tiffins = db.collection('tiffin_name');
+        const nameParam = req.params.name.replace(/_/g, ' '); // Convert underscores to spaces
+
+        const tiffin = await tiffins.findOne({ name: nameParam });
+        if (tiffin) {
+            res.json({ name: tiffin.name, price: tiffin.price });
+        } else {
+            res.status(404).json({ error: "Tiffin not found" });
+        }
+    } catch (error) {
+        console.error('Error in /tiffins/:name:', error);
+        res.status(500).json({ error: "Failed to fetch tiffin." });
+    } finally {
+        await client.close();
+        console.log('MongoDB connection closed');
+    }
+});
 
 app.get('/tiffins', async (req, res) => {
     const client = new MongoClient(uri);
@@ -58,4 +73,8 @@ app.get('/tiffins', async (req, res) => {
 
 app.get('/', (req, res) => res.json({ message: 'API running!' }));
 
-app.listen(port, () => console.log(`Server on port ${port}`));
+// Keep the server alive
+app.listen(port, () => {
+    console.log(`Server on port ${port}`);
+    setInterval(() => {}, 1000); // Prevent process from exiting
+});
